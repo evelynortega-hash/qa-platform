@@ -26,7 +26,8 @@ const PLATFORMS = [
   "MOBILE · iOS · FB Group","MOBILE · Android · FB Group",
   "DESKTOP · Chrome","DESKTOP · Edge","DESKTOP · Firefox",
 ];
-const CHECKLIST = [
+type ChecklistSection = { id:string; label:string; color:string; items:string[] };
+const DEFAULT_DEVQA_CHECKLIST: ChecklistSection[] = [
   { id:"design",      label:"Design vs Figma",       color:GREEN,     items:["Layout matches Figma","Sections order matches Figma","Copy matches Figma","Images/assets match Figma","Spacing matches Figma","Bottom Product Options are in 3 - 1 - 6 order for mobile"] },
   { id:"pricing",     label:"Pricing",               color:"#0066CC", items:["All prices match approved pricing sheet or the Figma","Crossout pricing shown correctly"] },
   { id:"buttons",     label:"Buttons & Function",    color:"#7B3FE4", items:["Carousel button works","Reviews at the top drop down to review section","Top ATC button performs intended action","Midpage ATC button performs intended action","OTP/Sub Toggles work","All buttons are clickable and go to correct destination","No broken links"] },
@@ -38,9 +39,65 @@ const CHECKLIST = [
   { id:"conf_email",  label:"Confirmation Email",    color:"#00A8A8", items:["Confirmation email received after checkout","Bundles are breaking down properly","Order items in email match checkout items","Pricing in email matches checkout pricing","Freebies listed correctly in email","Email links and CTAs work correctly"] },
   { id:"tech",        label:"Other Tech Checks",     color:"#555550", items:["Facebook descriptions match backend vs page","Cart debug shows all product options have the _list-name contain the URL slug"] },
 ];
+const DEFAULT_DESIGNER_CHECKLIST: ChecklistSection[] = [
+  { id:"d_carousel_header", label:"Product Carousel / Header", color:"#7B3FE4", items:[
+    "Product Name, Description, and 5-Star Reviews are visible",
+    "OTP and Subscribe options are displayed",
+    "Flavor options are displayed (if applicable)",
+    "If there is a quote at the top, the \"Verified Buyer\" badge is next to the person's name",
+    "Quote text: #4e4e4e, 20px / lh 20px",
+    "Product name: #1a1a1a — Web: 50px / lh 50px · Mobile: 35px / lh 35px",
+    "Product description: #4e4e4e — Web: 20px / lh 25px · Mobile: 16px / lh 16px",
+  ]},
+  { id:"d_carousel_old", label:"Carousel — Old Design Images", color:"#0066CC", items:[
+    "[Single] Front, Back, and Side of Bottle Images · [Stack] Front of Stack + Individual Product Images",
+    "SFP with Bottle Image",
+  ]},
+  { id:"d_carousel_apex", label:"Carousel — Apex Design Images", color:"#00A8A8", items:[
+    "Front of Bottle, How To Take, Pill, and Benefits Images present",
+    "SFP with Bottle Image",
+    "Risk Free + Cancel Anytime Checkmarks present and are #989898",
+    "FAQ at the top — plus sign buttons are #4e4e4e",
+    "Carousel buttons: hard edge, arrow inside circle is #4e4e4e, Web: 40x40 · Mobile: 30x30",
+  ]},
+  { id:"d_main_body", label:"Main Body — Design", color:GREEN, items:[
+    "Hero section with benefits is displayed",
+    "\"View Supplement Label\" opens SFP pop up (Web) / drop down (Mobile) — background does NOT scroll",
+    "\"View Supplement Label\" is 18px and #97CBFF",
+    "Sticky Add to Cart button is visible",
+    "All H2: #1a1a1a · Web: 50px/50px lh · Mobile: 35px/35px lh · Proxima Nova Extra Condensed Extrabold",
+    "All H3: #1a1a1a · Web: 40px/40px lh · Mobile: 30px/30px lh · Proxima Nova Extra Condensed Extrabold",
+    "All H4: #989898 · 25px/25px lh · Proxima Nova Extra Condensed Extrabold",
+    "Body copy: #4e4e4e · Web: 20px/25px lh · Mobile: 18px/23px lh · Proxima Nova Regular",
+    "Buttons: Web 40x40 · Mobile 30x30",
+    "Testimonials have \"Verified Buyer\" Badge (if applicable)",
+    "Ingredients are listed",
+    "Upsell section has an Add To Cart button",
+    "\"Save $$$\" Banner above Consistency is Key image: #C20F00, Proxima Nova Extra Condensed Extrabold",
+    "30-Day Money-Back is under \"Add To Cart\" — copy says \"Minus Shipping & Handling\", mentions customerservice@innosupps.com and 30 calendar days",
+    "All videos loading (N/A if none) · All images correct",
+  ]},
+  { id:"d_bottom_options", label:"Bottom Product Options — Design", color:"#F0A500", items:[
+    "[Single] Product order: 1, 6, 3 or 1, Stack, 3 · [Stack] Order: 3, 1",
+    "Banner above 6x/Stack says \"MAXIMUM SAVINGS AND BEST RESULTS\" — 20px, lh 25px, Proxima Nova",
+    "[Stack] Banner above 3x also says \"MAXIMUM SAVINGS AND BEST RESULTS\"",
+    "Each option has: Instant Savings, Per Bottle, Regularly (cross-out), One-Time Purchase, Subscribe & Save, and Total Price",
+    "FAQs shown — plus sign buttons are #4e4e4e · Web: 40x40 · Mobile: 30x30",
+    "Reviews section is fully shown",
+  ]},
+];
+const SECTION_COLOR_PALETTE = [GREEN,"#0066CC","#7B3FE4","#F0A500","#E8341C","#00A8A8","#555550",PINK];
 
-function initChecks() { const s:any={}; CHECKLIST.forEach(sec=>{s[sec.id]=sec.items.map(()=>({state:"unchecked",note:"",media:[]}));}); return s; }
-function initRD(revs:string[]=REVIEWERS) { const r:any={}; revs.forEach(n=>{r[n]={checks:initChecks(),done:false,notes:"",media:[]};}); return r; }
+function initChecks(checklist:ChecklistSection[]=DEFAULT_DEVQA_CHECKLIST) { const s:any={}; checklist.forEach(sec=>{s[sec.id]=sec.items.map(()=>({state:"unchecked",note:"",media:[]}));}); return s; }
+// initRD now takes a roles map so each reviewer is initialized against the correct checklist
+function initRD(revs:string[]=REVIEWERS,roles:Record<string,"designer"|"devqa">={},devChecklist:ChecklistSection[]=DEFAULT_DEVQA_CHECKLIST,desChecklist:ChecklistSection[]=DEFAULT_DESIGNER_CHECKLIST) {
+  const r:any={};
+  revs.forEach(n=>{
+    const cl=roles[n]==="designer"?desChecklist:devChecklist;
+    r[n]={checks:initChecks(cl),done:false,notes:"",media:[]};
+  });
+  return r;
+}
 function initPC(revs:string[]=REVIEWERS) { const r:any={}; revs.forEach(n=>{r[n]={};PLATFORMS.forEach(p=>{r[n][p]="unchecked";});}); return r; }
 function readFile(f:File):Promise<string> { return new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>res(e.target?.result as string);r.onerror=rej;r.readAsDataURL(f);}); }
 function cycleS(s:string){return s==="unchecked"?"checked":s==="checked"?"na":"unchecked";}
@@ -251,6 +308,8 @@ function NewQAModal({onStart,onClose,pools,setPools,initial,mode}:{onStart:(item
   const [dateAdded,setDateAdded]=useState(initial?.dateAdded||todayISO());
   const [designers,setDesigners]=useState<string[]>(initial?.designers||[]);
   const [reviewers,setReviewers]=useState<string[]>(initial?.reviewers||[]);
+  const [extraLinks,setExtraLinks]=useState<{label:string,url:string}[]>(initial?.extraLinks||[]);
+  const [notes,setNotes]=useState<string>(initial?.notes||"");
   const [addingDes,setAddingDes]=useState(false);
   const [addingDev,setAddingDev]=useState(false);
   const [newDes,setNewDes]=useState("");
@@ -258,12 +317,15 @@ function NewQAModal({onStart,onClose,pools,setPools,initial,mode}:{onStart:(item
   const [errors,setErrors]=useState<any>({});
   const designerOptions=pools.designers;
   const devQAOptions=pools.devQA;
-  function toggleDes(name:string){setDesigners(p=>p.includes(name)?p.filter(n=>n!==name):[...p,name]);}
-  function toggleR(name:string){setReviewers(p=>p.includes(name)?p.filter(n=>n!==name):[...p,name]);setErrors((p:any)=>({...p,reviewers:undefined}));}
-  function addDes(){const n=newDes.trim();if(!n)return;if(!designerOptions.includes(n))setPools(p=>({...p,designers:[...p.designers,n]}));setDesigners(p=>p.includes(n)?p:[...p,n]);setNewDes("");setAddingDes(false);}
-  function addDev(){const n=newDev.trim();if(!n)return;if(!devQAOptions.includes(n))setPools(p=>({...p,devQA:[...p.devQA,n]}));setReviewers(p=>p.includes(n)?p:[...p,n]);setNewDev("");setAddingDev(false);}
-  function validate(){const e:any={};if(!title.trim())e.title="Required";if(liveUrl&&!isValidUrl(liveUrl))e.liveUrl="Invalid URL";if(figmaUrl&&!isValidUrl(figmaUrl))e.figmaUrl="Invalid URL";if(revUrl&&!isValidUrl(revUrl))e.revUrl="Invalid URL";if(reviewers.length===0)e.reviewers="Select at least one Dev QA reviewer";return e;}
-  function go(){const e=validate();if(Object.keys(e).length){setErrors(e);return;}const ordDes=designerOptions.filter(n=>designers.includes(n));const ordRev=devQAOptions.filter(n=>reviewers.includes(n));const now=new Date().toISOString();const base=isEdit?{...initial}:{id:Date.now().toString(),createdAt:now};onStart({...base,name:title.trim(),url:liveUrl.trim()||null,figma:figmaUrl.trim()||null,revision:revUrl.trim()||null,designers:ordDes,reviewers:ordRev,checklistType:checklistType||null,trafficSource:trafficSource||null,owner:owner||null,dateAdded:dateAdded||todayISO(),lastEditedAt:now});}
+  function toggleDes(name:string){setDesigners(p=>p.includes(name)?p.filter(n=>n!==name):[...p,name]);setErrors((p:any)=>({...p,team:undefined}));}
+  function toggleR(name:string){setReviewers(p=>p.includes(name)?p.filter(n=>n!==name):[...p,name]);setErrors((p:any)=>({...p,team:undefined}));}
+  function addDes(){const n=newDes.trim();if(!n)return;if(!designerOptions.includes(n))setPools(p=>({...p,designers:[...p.designers,n]}));setDesigners(p=>p.includes(n)?p:[...p,n]);setNewDes("");setAddingDes(false);setErrors((p:any)=>({...p,team:undefined}));}
+  function addDev(){const n=newDev.trim();if(!n)return;if(!devQAOptions.includes(n))setPools(p=>({...p,devQA:[...p.devQA,n]}));setReviewers(p=>p.includes(n)?p:[...p,n]);setNewDev("");setAddingDev(false);setErrors((p:any)=>({...p,team:undefined}));}
+  function addExtraLink(){setExtraLinks(p=>[...p,{label:"",url:""}]);}
+  function updExtraLink(i:number,key:"label"|"url",v:string){setExtraLinks(p=>p.map((l,idx)=>idx===i?{...l,[key]:v}:l));setErrors((p:any)=>({...p,[`extra_${i}`]:undefined}));}
+  function rmExtraLink(i:number){setExtraLinks(p=>p.filter((_,idx)=>idx!==i));setErrors((p:any)=>{const n={...p};delete n[`extra_${i}`];return n;});}
+  function validate(){const e:any={};if(!title.trim())e.title="Required";if(liveUrl&&!isValidUrl(liveUrl))e.liveUrl="Invalid URL";if(figmaUrl&&!isValidUrl(figmaUrl))e.figmaUrl="Invalid URL";if(revUrl&&!isValidUrl(revUrl))e.revUrl="Invalid URL";extraLinks.forEach((l,i)=>{if(l.url&&!isValidUrl(l.url))e[`extra_${i}`]="Invalid URL";});if(reviewers.length===0&&designers.length===0)e.team="Select at least one team member";return e;}
+  function go(){const e=validate();if(Object.keys(e).length){setErrors(e);return;}const ordDes=designerOptions.filter(n=>designers.includes(n));const ordRev=devQAOptions.filter(n=>reviewers.includes(n));const cleanedLinks=extraLinks.map(l=>({label:l.label.trim(),url:l.url.trim()})).filter(l=>l.label||l.url);const now=new Date().toISOString();const base=isEdit?{...initial}:{id:Date.now().toString(),createdAt:now};onStart({...base,name:title.trim(),url:liveUrl.trim()||null,figma:figmaUrl.trim()||null,revision:revUrl.trim()||null,extraLinks:cleanedLinks,notes:notes.trim()||"",designers:ordDes,reviewers:ordRev,checklistType:checklistType||null,trafficSource:trafficSource||null,owner:owner||null,dateAdded:dateAdded||todayISO(),lastEditedAt:now});}
   const inp=(err:any):any=>({width:"100%",background:C.bgOff,border:`1px solid ${err?"#E8341C":C.border}`,borderRadius:8,padding:"9px 12px",fontSize:13,color:C.text,outline:"none",transition:"border-color .15s",fontFamily:"inherit"});
   const cbRow=(name:string,on:boolean,toggle:()=>void,accent:string)=>(
     <label key={name} style={{display:"flex",alignItems:"center",gap:8,padding:"5px 4px",cursor:"pointer",fontSize:13,color:C.text}}>
@@ -293,6 +355,41 @@ function NewQAModal({onStart,onClose,pools,setPools,initial,mode}:{onStart:(item
               {err&&<div style={{fontSize:11,color:"#E8341C",marginTop:3}}>{err as string}</div>}
             </div>
           ))}
+          {/* Extra URLs (ad-hoc) */}
+          {extraLinks.length>0&&(
+            <div>
+              <label style={{fontSize:12,fontWeight:600,display:"block",marginBottom:5}}>Extra URLs</label>
+              <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                {extraLinks.map((l,i)=>{const err=errors[`extra_${i}`];return(
+                  <div key={i} style={{display:"flex",gap:6,alignItems:"flex-start"}}>
+                    <input value={l.label} onChange={e=>updExtraLink(i,"label",e.target.value)} placeholder="Label (e.g. Brief)"
+                      style={{flex:"0 0 130px",minWidth:0,background:C.bgOff,border:`1px solid ${C.border}`,borderRadius:8,padding:"8px 11px",fontSize:13,color:C.text,outline:"none",fontFamily:"inherit"}}/>
+                    <div style={{flex:1,minWidth:0}}>
+                      <input value={l.url} onChange={e=>updExtraLink(i,"url",e.target.value)} placeholder="https://..."
+                        style={{width:"100%",background:C.bgOff,border:`1px solid ${err?"#E8341C":C.border}`,borderRadius:8,padding:"8px 11px",fontSize:13,color:C.text,outline:"none",fontFamily:"inherit"}}/>
+                      {err&&<div style={{fontSize:11,color:"#E8341C",marginTop:3}}>{err}</div>}
+                    </div>
+                    <button type="button" onClick={()=>rmExtraLink(i)} style={{background:C.bgOff,border:`1px solid ${C.border}`,color:C.textSm,width:34,height:34,borderRadius:8,cursor:"pointer",fontSize:14,fontWeight:600,flexShrink:0,fontFamily:"inherit"}}
+                      onMouseEnter={e=>{const el=e.currentTarget as HTMLElement;el.style.background="#FEF0ED";el.style.borderColor="#F5C4BA";el.style.color="#E8341C";}}
+                      onMouseLeave={e=>{const el=e.currentTarget as HTMLElement;el.style.background=C.bgOff;el.style.borderColor=C.border;el.style.color=C.textSm;}}>×</button>
+                  </div>
+                );})}
+              </div>
+            </div>
+          )}
+          {/* Notes */}
+          <div>
+            <label style={{fontSize:12,fontWeight:600,display:"block",marginBottom:5}}>Notes <span style={{fontWeight:400,color:C.textSm,fontSize:11}}>(optional)</span></label>
+            <textarea value={notes} onChange={e=>setNotes(e.target.value)} placeholder="Any context, special instructions, or things to watch for..." rows={3}
+              style={{width:"100%",background:C.bgOff,border:`1px solid ${C.border}`,borderRadius:8,padding:"9px 12px",fontSize:13,color:C.text,outline:"none",fontFamily:"inherit",resize:"vertical"}}
+              onFocus={e=>(e.target as HTMLTextAreaElement).style.borderColor=GREEN} onBlur={e=>(e.target as HTMLTextAreaElement).style.borderColor=C.border}/>
+          </div>
+          {/* Add-row actions */}
+          <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+            <button type="button" onClick={addExtraLink} style={{background:C.bgOff,border:`1px dashed ${C.borderMd}`,color:C.textMd,padding:"7px 14px",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:600,fontFamily:"inherit"}}
+              onMouseEnter={e=>{const el=e.currentTarget as HTMLElement;el.style.borderColor=GREEN;el.style.color=GREEN_DK;el.style.background=GREEN_BG;}}
+              onMouseLeave={e=>{const el=e.currentTarget as HTMLElement;el.style.borderColor=C.borderMd;el.style.color=C.textMd;el.style.background=C.bgOff;}}>+ Add URL</button>
+          </div>
           {/* Metadata: Checklist Type, Traffic Source, Owner, Date Added */}
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(200px, 1fr))",gap:10}}>
             <DropdownPicker label="Checklist Type" value={checklistType} options={pools.checklistTypes}
@@ -342,8 +439,8 @@ function NewQAModal({onStart,onClose,pools,setPools,initial,mode}:{onStart:(item
                 )}
               </div>
             </div>
-            {errors.reviewers&&<div style={{fontSize:11,color:"#E8341C",marginTop:6}}>{errors.reviewers}</div>}
-            <div style={{fontSize:11,color:C.textSm,marginTop:6}}>Dev QA members get checklist tabs. Designers are listed on the task for sign-off.</div>
+            {errors.team&&<div style={{fontSize:11,color:"#E8341C",marginTop:6}}>{errors.team}</div>}
+            <div style={{fontSize:11,color:C.textSm,marginTop:6}}>Each person gets their own checklist tab — designers see the designer checklist, Dev QA sees the dev checklist.</div>
           </div>
         </div>
         <div style={{display:"flex",gap:10,marginTop:22,justifyContent:"flex-end"}}>
@@ -413,7 +510,7 @@ export default function QAApp() {
   const [rd,setRD]=useState<any>(initRD());
   const [pc,setPC]=useState<any>(initPC());
   const [secData,setSecData]=useState<any>({}); // {[reviewer]:{[secId]:{note,media}}}
-  const [openSecs,setOpenSecs]=useState<any>(()=>Object.fromEntries(CHECKLIST.map(s=>[s.id,true])));
+  const [openSecs,setOpenSecs]=useState<any>(()=>Object.fromEntries([...DEFAULT_DEVQA_CHECKLIST,...DEFAULT_DESIGNER_CHECKLIST].map(s=>[s.id,true])));
   const [bugs,setBugs]=useState<any[]>([]);
   const [submitting,setSub]=useState(false);
   const [log,setLog]=useState<any[]>([]);
@@ -425,14 +522,128 @@ export default function QAApp() {
   const [sessions,setSessions]=useState<any>({});
   const [pools,setPoolsRaw]=useState<OptionPools>(defaultPools());
   const setPools=useCallback((updater:(p:OptionPools)=>OptionPools)=>{setPoolsRaw(prev=>{const next=updater(prev);try{localStorage.setItem("qa_pools",JSON.stringify(next));}catch{}return next;});},[]);
+  const [devQAChecklist,setDevQAChecklistRaw]=useState<ChecklistSection[]>(()=>JSON.parse(JSON.stringify(DEFAULT_DEVQA_CHECKLIST)));
+  const setDevQAChecklist=useCallback((updater:(c:ChecklistSection[])=>ChecklistSection[])=>{setDevQAChecklistRaw(prev=>{const next=updater(prev);try{localStorage.setItem("qa_checklist_devqa",JSON.stringify(next));}catch{}return next;});},[]);
+  const [designerChecklist,setDesignerChecklistRaw]=useState<ChecklistSection[]>(()=>JSON.parse(JSON.stringify(DEFAULT_DESIGNER_CHECKLIST)));
+  const setDesignerChecklist=useCallback((updater:(c:ChecklistSection[])=>ChecklistSection[])=>{setDesignerChecklistRaw(prev=>{const next=updater(prev);try{localStorage.setItem("qa_checklist_designer",JSON.stringify(next));}catch{}return next;});},[]);
+  const [checklistEditMode,setChecklistEditMode]=useState(false);
+  const [editingChecklistRole,setEditingChecklistRole]=useState<"devqa"|"designer">("devqa");
+  const [queueOwnerFilter,setQueueOwnerFilter]=useState<string>("all");
   const [logSearch,setLogSearch]=useState("");
   const [logOwnerFilter,setLogOwnerFilter]=useState<string>("all"); // "all" | owner name | "unassigned"
   const autoSaveTimer=useRef<any>(null);
 
-  // Reviewers selected for the active task (falls back to all 3 for older sessions)
-  const activeReviewers:string[] = (active?.reviewers && Array.isArray(active.reviewers) && active.reviewers.length>0) ? active.reviewers : REVIEWERS;
+  // ── Undo/Redo history ──
+  // History contains snapshots of {rd, pc, secData, bugs, gNotes, gMedia}. pastRef holds prior states, futureRef holds redo states.
+  const pastRef = useRef<any[]>([]);
+  const futureRef = useRef<any[]>([]);
+  const skipNextSnapshotRef = useRef(false); // when applying an undo/redo, don't push a new snapshot
+  const snapshotDebounceRef = useRef<any>(null);
+  const [historyTick,setHistoryTick]=useState(0); // bump to re-render undo/redo buttons
+  const HISTORY_LIMIT = 60;
 
-  function initSecData(revs:string[]=REVIEWERS){const r:any={};revs.forEach(n=>{r[n]={};CHECKLIST.forEach(sec=>{r[n][sec.id]={note:"",media:[]};});});return r;}
+  function makeSnapshot(){
+    return {
+      rd: JSON.parse(JSON.stringify(rd)),
+      pc: JSON.parse(JSON.stringify(pc)),
+      secData: JSON.parse(JSON.stringify(secData)),
+      bugs: JSON.parse(JSON.stringify(bugs)),
+      gNotes,
+      gMedia: JSON.parse(JSON.stringify(gMedia)),
+    };
+  }
+  function applySnapshot(s:any){
+    skipNextSnapshotRef.current = true;
+    setRD(s.rd); setPC(s.pc); setSecData(s.secData); setBugs(s.bugs); setGNotes(s.gNotes); setGMedia(s.gMedia);
+  }
+  function undo(){
+    if(view!=="qa"||pastRef.current.length===0)return;
+    const cur=makeSnapshot();
+    const prev=pastRef.current.pop()!;
+    futureRef.current.push(cur);
+    if(futureRef.current.length>HISTORY_LIMIT)futureRef.current.shift();
+    applySnapshot(prev);
+    setHistoryTick(t=>t+1);
+  }
+  function redo(){
+    if(view!=="qa"||futureRef.current.length===0)return;
+    const cur=makeSnapshot();
+    const next=futureRef.current.pop()!;
+    pastRef.current.push(cur);
+    if(pastRef.current.length>HISTORY_LIMIT)pastRef.current.shift();
+    applySnapshot(next);
+    setHistoryTick(t=>t+1);
+  }
+  // Snapshot on every change to tracked state (debounced 250ms so rapid typing produces one entry)
+  useEffect(()=>{
+    if(view!=="qa"||!active)return;
+    if(skipNextSnapshotRef.current){skipNextSnapshotRef.current=false;return;}
+    if(snapshotDebounceRef.current)clearTimeout(snapshotDebounceRef.current);
+    snapshotDebounceRef.current=setTimeout(()=>{
+      // Compare with the most recent past snapshot to avoid duplicate entries
+      const snap=makeSnapshot();
+      const last=pastRef.current[pastRef.current.length-1];
+      const sameAsLast=last && JSON.stringify(last)===JSON.stringify(snap);
+      if(sameAsLast)return;
+      pastRef.current.push(snap);
+      if(pastRef.current.length>HISTORY_LIMIT)pastRef.current.shift();
+      futureRef.current=[];
+      setHistoryTick(t=>t+1);
+    },250);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[rd,pc,secData,bugs,gNotes,gMedia,view,active?.id]);
+
+  // Reset history when switching active task or leaving QA view
+  useEffect(()=>{
+    pastRef.current=[]; futureRef.current=[]; setHistoryTick(t=>t+1);
+  },[active?.id,view]);
+
+  // Keyboard shortcuts for undo/redo
+  useEffect(()=>{
+    function onKey(e:KeyboardEvent){
+      if(view!=="qa")return;
+      const tgt=e.target as HTMLElement|null;
+      // Allow inside textareas/inputs so users can naturally undo text typing too — but only when the input is empty would conflict.
+      // Strategy: if focused element is a contenteditable, leave the browser alone; otherwise capture cmd/ctrl+z.
+      if(tgt&&(tgt.tagName==="INPUT"||tgt.tagName==="TEXTAREA"||tgt.isContentEditable))return;
+      const meta=e.metaKey||e.ctrlKey;
+      if(!meta)return;
+      if(e.key==="z"||e.key==="Z"){
+        e.preventDefault();
+        if(e.shiftKey)redo();else undo();
+      } else if(e.key==="y"||e.key==="Y"){
+        e.preventDefault();
+        redo();
+      }
+    }
+    window.addEventListener("keydown",onKey);
+    return()=>window.removeEventListener("keydown",onKey);
+  },[view,rd,pc,secData,bugs,gNotes,gMedia]);
+
+  const canUndo=pastRef.current.length>0;
+  const canRedo=futureRef.current.length>0;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _historyTick=historyTick; // satisfy lint about historyTick not being read in render
+
+  // Participants for the active task = designers + Dev QA reviewers (each gets their own checklist)
+  const activeDesigners:string[] = (active?.designers && Array.isArray(active.designers)) ? active.designers : [];
+  const activeDevQA:string[]     = (active?.reviewers && Array.isArray(active.reviewers)) ? active.reviewers : (active?.designers?.length>0?[]:REVIEWERS); // back-compat: if no team selected at all on an old task, default to Dev QA REVIEWERS
+  // For UI ordering: designers first, then Dev QA. Both must be unique.
+  const activeReviewers:string[] = Array.from(new Set([...activeDesigners,...activeDevQA]));
+  function roleOf(r:string):"designer"|"devqa" { return activeDesigners.includes(r)?"designer":"devqa"; }
+  function checklistForRole(role:"designer"|"devqa"):ChecklistSection[] { return role==="designer"?designerChecklist:devQAChecklist; }
+  function checklistForReviewer(r:string):ChecklistSection[] { return checklistForRole(roleOf(r)); }
+  const activeRolesMap:Record<string,"designer"|"devqa"> = Object.fromEntries(activeReviewers.map(r=>[r,roleOf(r)] as const));
+  // Build a combined checklist that includes the union of both per active reviewer types — used for init helpers
+  function initSecData(revs:string[]=REVIEWERS,roles:Record<string,"designer"|"devqa">={}){
+    const r:any={};
+    revs.forEach(n=>{
+      r[n]={};
+      const cl=roles[n]==="designer"?designerChecklist:devQAChecklist;
+      cl.forEach(sec=>{r[n][sec.id]={note:"",media:[]};});
+    });
+    return r;
+  }
 
   const showToast=(msg:string,ok=true)=>{setToast({msg,ok});setTimeout(()=>setToast(null),3400);};
 
@@ -441,6 +652,16 @@ export default function QAApp() {
     fetch("/api/queue").then(r=>r.json()).then(setQueue).catch(()=>{});
     fetch("/api/sessions").then(r=>r.json()).then(setSessions).catch(()=>{});
     try{const stored=localStorage.getItem("qa_pools");if(stored){const parsed=JSON.parse(stored);setPoolsRaw({...defaultPools(),...parsed});}}catch{}
+    try{
+      const stored=localStorage.getItem("qa_checklist_devqa");
+      if(stored){const parsed=JSON.parse(stored);if(Array.isArray(parsed)&&parsed.length>0)setDevQAChecklistRaw(parsed);}
+      else{
+        // Migrate legacy single-checklist key
+        const legacy=localStorage.getItem("qa_checklist");
+        if(legacy){const parsed=JSON.parse(legacy);if(Array.isArray(parsed)&&parsed.length>0)setDevQAChecklistRaw(parsed);}
+      }
+    }catch{}
+    try{const stored=localStorage.getItem("qa_checklist_designer");if(stored){const parsed=JSON.parse(stored);if(Array.isArray(parsed)&&parsed.length>0)setDesignerChecklistRaw(parsed);}}catch{}
   },[]);
 
   const loadLog=useCallback(async()=>{
@@ -466,20 +687,29 @@ export default function QAApp() {
 
   async function openQA(item:any,resume=false){
     const saved=sessions[item.id];
-    const revs:string[] = (item.reviewers && Array.isArray(item.reviewers) && item.reviewers.length>0) ? item.reviewers : REVIEWERS;
+    const itemDes:string[] = (item.designers && Array.isArray(item.designers)) ? item.designers : [];
+    const itemRev:string[] = (item.reviewers && Array.isArray(item.reviewers)) ? item.reviewers : (itemDes.length>0?[]:REVIEWERS);
+    const revs:string[] = Array.from(new Set([...itemDes,...itemRev]));
+    const roleMap:Record<string,"designer"|"devqa"> = Object.fromEntries([...itemDes.map(n=>[n,"designer"]),...itemRev.map(n=>[n,"devqa"])]);
     if(resume&&saved){
-      const savedRevs:string[] = (saved.active?.reviewers && Array.isArray(saved.active.reviewers) && saved.active.reviewers.length>0) ? saved.active.reviewers : REVIEWERS;
-      // Merge saved state with any reviewer that's missing (e.g. team list changed)
-      const baseRD=initRD(savedRevs);const baseRD2={...baseRD,...(saved.rd||{})};
+      const savedAct=saved.active||item;
+      const savedDes:string[]=(savedAct?.designers&&Array.isArray(savedAct.designers))?savedAct.designers:[];
+      const savedDev:string[]=(savedAct?.reviewers&&Array.isArray(savedAct.reviewers))?savedAct.reviewers:(savedDes.length>0?[]:REVIEWERS);
+      const savedRevs:string[]=Array.from(new Set([...savedDes,...savedDev]));
+      const savedRoles:Record<string,"designer"|"devqa">=Object.fromEntries([...savedDes.map(n=>[n,"designer"]),...savedDev.map(n=>[n,"devqa"])]);
+      const baseRD=initRD(savedRevs,savedRoles,devQAChecklist,designerChecklist);const baseRD2={...baseRD,...(saved.rd||{})};
       const basePC=initPC(savedRevs);const basePC2={...basePC,...(saved.pc||{})};
-      const baseSD=initSecData(savedRevs);const baseSD2={...baseSD,...(saved.secData||{})};
-      setActive(saved.active);setRD(baseRD2);setPC(basePC2);setSecData(baseSD2);
+      const baseSD=initSecData(savedRevs,savedRoles);const baseSD2={...baseSD,...(saved.secData||{})};
+      setActive(savedAct);setRD(baseRD2);setPC(basePC2);setSecData(baseSD2);
       setBugs(saved.bugs||[]);setGNotes(saved.gNotes||"");setGMedia(saved.gMedia||[]);
-      setActiveR(savedRevs[0]);
+      setActiveR(savedRevs[0]||REVIEWERS[0]);
     } else {
-      setActive(item);setRD(initRD(revs));setPC(initPC(revs));setSecData(initSecData(revs));
+      setActive(item);
+      setRD(initRD(revs,roleMap,devQAChecklist,designerChecklist));
+      setPC(initPC(revs));
+      setSecData(initSecData(revs,roleMap));
       setBugs([]);setGNotes("");setGMedia([]);
-      setActiveR(revs[0]);
+      setActiveR(revs[0]||REVIEWERS[0]);
     }
     setQaTab("checklist");setView("qa");
   }
@@ -498,12 +728,14 @@ export default function QAApp() {
     // Update active task if it's the one being edited (so QA view picks up changes immediately)
     if(active&&active.id===updated.id){
       setActive(updated);
-      // If reviewer list changed, ensure rd/pc/secData have entries for the new set
-      const newRevs:string[] = (updated.reviewers&&Array.isArray(updated.reviewers)&&updated.reviewers.length>0) ? updated.reviewers : REVIEWERS;
-      setRD((p:any)=>{const base=initRD(newRevs);return{...base,...p};});
+      const uDes:string[]=(updated.designers&&Array.isArray(updated.designers))?updated.designers:[];
+      const uDev:string[]=(updated.reviewers&&Array.isArray(updated.reviewers))?updated.reviewers:(uDes.length>0?[]:REVIEWERS);
+      const newRevs:string[]=Array.from(new Set([...uDes,...uDev]));
+      const newRoles:Record<string,"designer"|"devqa">=Object.fromEntries([...uDes.map(n=>[n,"designer"]),...uDev.map(n=>[n,"devqa"])]);
+      setRD((p:any)=>{const base=initRD(newRevs,newRoles,devQAChecklist,designerChecklist);return{...base,...p};});
       setPC((p:any)=>{const base=initPC(newRevs);return{...base,...p};});
-      setSecData((p:any)=>{const base=initSecData(newRevs);return{...base,...p};});
-      if(!newRevs.includes(activeR))setActiveR(newRevs[0]);
+      setSecData((p:any)=>{const base=initSecData(newRevs,newRoles);return{...base,...p};});
+      if(!newRevs.includes(activeR))setActiveR(newRevs[0]||REVIEWERS[0]);
     }
     setShowEditModal(false);
     showToast("Task updated ✓",true);
@@ -519,34 +751,130 @@ export default function QAApp() {
     await fetch("/api/sessions",{method:"DELETE",headers:{"Content-Type":"application/json"},body:JSON.stringify({itemId})}).catch(()=>{});
   }
 
-  const gc=(r:string)=>rd[r].checks;
+  const gc=(r:string)=>rd[r]?.checks||{};
 
-  function cycleCheck(r:string,sid:string,i:number){setRD((p:any)=>{const n=JSON.parse(JSON.stringify(p));n[r].checks[sid][i].state=cycleS(n[r].checks[sid][i].state);return n;});}
+  function cycleCheck(r:string,sid:string,i:number){setRD((p:any)=>{const n=JSON.parse(JSON.stringify(p));if(!n[r]?.checks?.[sid]?.[i])return n;n[r].checks[sid][i].state=cycleS(n[r].checks[sid][i].state);return n;});}
   function toggleFlag(r:string,sid:string,i:number){
     setRD((p:any)=>{
-      const n=JSON.parse(JSON.stringify(p));const c=n[r].checks[sid][i];const was=c.state==="flagged";
+      const n=JSON.parse(JSON.stringify(p));const c=n[r]?.checks?.[sid]?.[i];if(!c)return n;const was=c.state==="flagged";
       c.state=was?"unchecked":"flagged";
-      const sec=CHECKLIST.find(s=>s.id===sid)!;
+      const sec=checklistForReviewer(r).find(s=>s.id===sid);
+      if(!sec)return n;
       if(!was){setBugs(prev=>{if(prev.find((b:any)=>b.reviewer===r&&b.section===sec.label&&b.item===sec.items[i]))return prev;return[...prev,{id:Date.now()+Math.random(),reviewer:r,section:sec.label,item:sec.items[i],note:c.note,media:c.media,status:"open",pendingFixNote:"",fixNote:""}];});}
       else{setBugs(prev=>prev.filter((b:any)=>!(b.reviewer===r&&b.section===sec.label&&b.item===sec.items[i])));}
       return n;
     });
   }
-  function setINote(r:string,sid:string,i:number,v:string){setRD((p:any)=>{const n=JSON.parse(JSON.stringify(p));n[r].checks[sid][i].note=v;const sec=CHECKLIST.find(s=>s.id===sid)!;setBugs(prev=>prev.map((b:any)=>b.reviewer===r&&b.section===sec.label&&b.item===sec.items[i]?{...b,note:v}:b));return n;});}
-  function setIMedia(r:string,sid:string,i:number,m:any[]){setRD((p:any)=>{const n=JSON.parse(JSON.stringify(p));n[r].checks[sid][i].media=m;const sec=CHECKLIST.find(s=>s.id===sid)!;setBugs(prev=>prev.map((b:any)=>b.reviewer===r&&b.section===sec.label&&b.item===sec.items[i]?{...b,media:m}:b));return n;});}
-  function setRNotes(r:string,v:string){setRD((p:any)=>{const n=JSON.parse(JSON.stringify(p));n[r].notes=v;return n;});}
-  function setRMedia(r:string,m:any[]){setRD((p:any)=>{const n=JSON.parse(JSON.stringify(p));n[r].media=m;return n;});}
+  function setINote(r:string,sid:string,i:number,v:string){setRD((p:any)=>{const n=JSON.parse(JSON.stringify(p));if(!n[r]?.checks?.[sid]?.[i])return n;n[r].checks[sid][i].note=v;const sec=checklistForReviewer(r).find(s=>s.id===sid);if(sec)setBugs(prev=>prev.map((b:any)=>b.reviewer===r&&b.section===sec.label&&b.item===sec.items[i]?{...b,note:v}:b));return n;});}
+  function setIMedia(r:string,sid:string,i:number,m:any[]){setRD((p:any)=>{const n=JSON.parse(JSON.stringify(p));if(!n[r]?.checks?.[sid]?.[i])return n;n[r].checks[sid][i].media=m;const sec=checklistForReviewer(r).find(s=>s.id===sid);if(sec)setBugs(prev=>prev.map((b:any)=>b.reviewer===r&&b.section===sec.label&&b.item===sec.items[i]?{...b,media:m}:b));return n;});}
+  function setRNotes(r:string,v:string){setRD((p:any)=>{const n=JSON.parse(JSON.stringify(p));if(!n[r])return n;n[r].notes=v;return n;});}
+  function setRMedia(r:string,m:any[]){setRD((p:any)=>{const n=JSON.parse(JSON.stringify(p));if(!n[r])return n;n[r].media=m;return n;});}
   function setSecNote(r:string,sid:string,v:string){setSecData((p:any)=>{const n=JSON.parse(JSON.stringify(p));if(!n[r])n[r]={};if(!n[r][sid])n[r][sid]={note:"",media:[]};n[r][sid].note=v;return n;});}
   function setSecMedia(r:string,sid:string,m:any[]){setSecData((p:any)=>{const n=JSON.parse(JSON.stringify(p));if(!n[r])n[r]={};if(!n[r][sid])n[r][sid]={note:"",media:[]};n[r][sid].media=m;return n;});}
   function getSec(r:string,sid:string){return secData?.[r]?.[sid]||{note:"",media:[]};}
+
+  // ── Checklist mutation helpers ── keep rd, secData, and bugs in sync.
+  // All mutators target the currently-edited checklist role (`editingChecklistRole`).
+  function slug(s:string){return s.toLowerCase().replace(/[^a-z0-9]+/g,"_").replace(/^_+|_+$/g,"")||"section";}
+  function uniqueSectionId(base:string,existing:string[]){let id=slug(base);let n=1;while(existing.includes(id)){n++;id=slug(base)+"_"+n;}return id;}
+  function currentEditChecklist(){return editingChecklistRole==="designer"?designerChecklist:devQAChecklist;}
+  function setCurrentEditChecklist(updater:(c:ChecklistSection[])=>ChecklistSection[]){
+    if(editingChecklistRole==="designer")setDesignerChecklist(updater);
+    else setDevQAChecklist(updater);
+  }
+  function isRoleReviewer(r:string){return activeRolesMap[r]===editingChecklistRole;}
+  function renameSection(sid:string,newLabel:string){
+    const cur=currentEditChecklist();
+    const oldLabel=cur.find(s=>s.id===sid)?.label;
+    setCurrentEditChecklist(prev=>prev.map(sec=>sec.id===sid?{...sec,label:newLabel}:sec));
+    if(oldLabel&&oldLabel!==newLabel)setBugs(prev=>prev.map(b=>{if(b.section!==oldLabel)return b;if(!isRoleReviewer(b.reviewer))return b;return{...b,section:newLabel};}));
+  }
+  function recolorSection(sid:string,color:string){setCurrentEditChecklist(prev=>prev.map(sec=>sec.id===sid?{...sec,color}:sec));}
+  function moveSection(sid:string,dir:-1|1){
+    setCurrentEditChecklist(prev=>{
+      const idx=prev.findIndex(s=>s.id===sid);if(idx<0)return prev;
+      const j=idx+dir;if(j<0||j>=prev.length)return prev;
+      const next=[...prev];const [s]=next.splice(idx,1);next.splice(j,0,s);return next;
+    });
+  }
+  function deleteSection(sid:string){
+    const cur=currentEditChecklist();
+    const sec=cur.find(s=>s.id===sid);if(!sec)return;
+    if(!window.confirm(`Delete section "${sec.label}" and all its items? This can't be undone.`))return;
+    setCurrentEditChecklist(prev=>prev.filter(s=>s.id!==sid));
+    setRD((p:any)=>{const n=JSON.parse(JSON.stringify(p));Object.keys(n).forEach(r=>{if(isRoleReviewer(r)&&n[r]?.checks)delete n[r].checks[sid];});return n;});
+    setSecData((p:any)=>{const n=JSON.parse(JSON.stringify(p));Object.keys(n).forEach(r=>{if(isRoleReviewer(r)&&n[r])delete n[r][sid];});return n;});
+    setBugs(prev=>prev.filter(b=>!(b.section===sec.label&&isRoleReviewer(b.reviewer))));
+    setOpenSecs((p:any)=>{const n={...p};delete n[sid];return n;});
+  }
+  function addSection(){
+    const cur=currentEditChecklist();
+    const existingAcross=new Set([...devQAChecklist.map(s=>s.id),...designerChecklist.map(s=>s.id)]);
+    const id=uniqueSectionId("new_section",Array.from(existingAcross));
+    const palette=SECTION_COLOR_PALETTE;
+    const color=palette[cur.length%palette.length];
+    const newSec:ChecklistSection={id,label:"New Section",color,items:[]};
+    setCurrentEditChecklist(prev=>[...prev,newSec]);
+    setRD((p:any)=>{const n=JSON.parse(JSON.stringify(p));Object.keys(n).forEach(r=>{if(isRoleReviewer(r)&&n[r]?.checks)n[r].checks[id]=[];});return n;});
+    setSecData((p:any)=>{const n=JSON.parse(JSON.stringify(p));Object.keys(n).forEach(r=>{if(isRoleReviewer(r)){if(!n[r])n[r]={};n[r][id]={note:"",media:[]};}});return n;});
+    setOpenSecs((p:any)=>({...p,[id]:true}));
+  }
+  function addItem(sid:string){
+    setCurrentEditChecklist(prev=>prev.map(sec=>sec.id===sid?{...sec,items:[...sec.items,"New item"]}:sec));
+    setRD((p:any)=>{const n=JSON.parse(JSON.stringify(p));Object.keys(n).forEach(r=>{if(isRoleReviewer(r)&&n[r]?.checks?.[sid])n[r].checks[sid].push({state:"unchecked",note:"",media:[]});});return n;});
+  }
+  function renameItem(sid:string,idx:number,newText:string){
+    const cur=currentEditChecklist();
+    const sec=cur.find(s=>s.id===sid);if(!sec)return;
+    const oldText=sec.items[idx];
+    setCurrentEditChecklist(prev=>prev.map(s=>s.id===sid?{...s,items:s.items.map((it,i)=>i===idx?newText:it)}:s));
+    if(oldText&&oldText!==newText)setBugs(prev=>prev.map(b=>(b.section===sec.label&&b.item===oldText&&isRoleReviewer(b.reviewer))?{...b,item:newText}:b));
+  }
+  function moveItem(sid:string,idx:number,dir:-1|1){
+    const cur=currentEditChecklist();
+    const sec=cur.find(s=>s.id===sid);if(!sec)return;
+    const j=idx+dir;if(j<0||j>=sec.items.length)return;
+    setCurrentEditChecklist(prev=>prev.map(s=>{
+      if(s.id!==sid)return s;
+      const next=[...s.items];const [it]=next.splice(idx,1);next.splice(j,0,it);return{...s,items:next};
+    }));
+    setRD((p:any)=>{const n=JSON.parse(JSON.stringify(p));Object.keys(n).forEach(r=>{
+      if(!isRoleReviewer(r))return;
+      const arr=n[r]?.checks?.[sid];if(!arr)return;
+      const [c]=arr.splice(idx,1);arr.splice(j,0,c);
+    });return n;});
+  }
+  function deleteItem(sid:string,idx:number){
+    const cur=currentEditChecklist();
+    const sec=cur.find(s=>s.id===sid);if(!sec)return;
+    const itemText=sec.items[idx];
+    if(!window.confirm(`Delete item "${itemText}"?`))return;
+    setCurrentEditChecklist(prev=>prev.map(s=>s.id===sid?{...s,items:s.items.filter((_,i)=>i!==idx)}:s));
+    setRD((p:any)=>{const n=JSON.parse(JSON.stringify(p));Object.keys(n).forEach(r=>{
+      if(!isRoleReviewer(r))return;
+      const arr=n[r]?.checks?.[sid];if(arr)arr.splice(idx,1);
+    });return n;});
+    setBugs(prev=>prev.filter(b=>!(b.section===sec.label&&b.item===itemText&&isRoleReviewer(b.reviewer))));
+  }
+  function resetChecklistToDefault(){
+    const roleLabel=editingChecklistRole==="designer"?"Designer":"Dev QA";
+    if(!window.confirm(`Reset the ${roleLabel} checklist to factory default? This won't affect already-completed log entries, but the current QA session's checks for any removed items will be lost.`))return;
+    const fresh=JSON.parse(JSON.stringify(editingChecklistRole==="designer"?DEFAULT_DESIGNER_CHECKLIST:DEFAULT_DEVQA_CHECKLIST));
+    setCurrentEditChecklist(()=>fresh);
+    setRD((p:any)=>{const n=JSON.parse(JSON.stringify(p));Object.keys(n).forEach(r=>{if(isRoleReviewer(r)){n[r]=n[r]||{};n[r].checks=initChecks(fresh);}});return n;});
+    setSecData((p:any)=>{const n=JSON.parse(JSON.stringify(p));Object.keys(n).forEach(r=>{if(isRoleReviewer(r)){n[r]={};fresh.forEach((sec:any)=>{n[r][sec.id]={note:"",media:[]};});}});return n;});
+    setOpenSecs((p:any)=>{const merged={...p};fresh.forEach((s:any)=>{merged[s.id]=true;});return merged;});
+  }
+
   function toggleDone(r:string){setRD((p:any)=>{const n=JSON.parse(JSON.stringify(p));n[r].done=!n[r].done;return n;});}
   function cyclePlat(r:string,pl:string){setPC((p:any)=>{const n=JSON.parse(JSON.stringify(p));const c=n[r][pl];n[r][pl]=c==="unchecked"?"checked":c==="checked"?"na":"unchecked";return n;});}
 
   function rProg(r:string){const flat=Object.values(gc(r)).flat() as any[];const act=flat.filter((c:any)=>c.state!=="na");const done=act.filter((c:any)=>c.state==="checked"||c.state==="flagged");return{done:done.length,total:act.length,pct:act.length?Math.round(done.length/act.length*100):0};}
-  function rFlags(r:string){const f:any[]=[];CHECKLIST.forEach(sec=>sec.items.forEach((item,i)=>{if(gc(r)[sec.id][i].state==="flagged")f.push({section:sec.label,item,note:gc(r)[sec.id][i].note,media:gc(r)[sec.id][i].media});}));return f;}
+  function rFlags(r:string){const cl=checklistForReviewer(r);const f:any[]=[];cl.forEach(sec=>sec.items.forEach((item,i)=>{const c=gc(r)?.[sec.id]?.[i];if(c?.state==="flagged")f.push({section:sec.label,item,note:c.note,media:c.media});}));return f;}
   function updBug(id:any,action:string,val?:string){setBugs(prev=>prev.map((b:any)=>{if(b.id!==id)return b;if(action==="send")return{...b,status:"sent"};if(action==="fix")return{...b,status:"fixed",fixNote:b.pendingFixNote||""};if(action==="reopen")return{...b,status:"open",fixNote:""};if(action==="note")return{...b,pendingFixNote:val};return b;}));}
 
-  const canSubmit=activeReviewers.every(r=>rd[r]?.done);
+  const allDone=activeReviewers.every(r=>rd[r]?.done);
+  const canSubmit=true; // Mark done is progress-only; submission is always available
   const actProg=rProg(activeReviewers.includes(activeR)?activeR:activeReviewers[0]);
   const openBugs=bugs.filter(b=>b.status==="open"||b.status==="sent").length;
   const sessionCount=Object.keys(sessions).length;
@@ -554,10 +882,13 @@ export default function QAApp() {
   function stripMedia(arr:any[]){if(!arr)return[];return arr.map(m=>({id:m.id,name:m.name,type:m.type,dataUrl:m.dataUrl}));}
 
   async function submit(){
-    if(!canSubmit)return;
     setSub(true);
-    const sums=activeReviewers.map(r=>({reviewer:r,flags:rFlags(r).map(f=>({...f,media:stripMedia(f.media)})),platforms:pc[r],done:rd[r].done,notes:rd[r].notes,media:stripMedia(rd[r].media),sectionNotes:(()=>{const out:any={};CHECKLIST.forEach(sec=>{const sd=getSec(r,sec.id);out[sec.id]={note:sd.note||"",media:stripMedia(sd.media||[])};});return out;})(),checks:(()=>{const out:any={};CHECKLIST.forEach(sec=>{out[sec.id]=gc(r)[sec.id].map((c:any)=>({state:c.state,note:c.note,media:stripMedia(c.media)}));});return out;})()}));
-    const entry={id:Date.now().toString(),itemId:active.id,itemName:active.name,url:active.url,figma:active.figma,revision:active.revision,reviewers:activeReviewers,designers:active.designers||[],checklistType:active.checklistType||null,trafficSource:active.trafficSource||null,owner:active.owner||null,dateAdded:active.dateAdded||null,lastEditedAt:active.lastEditedAt||null,reviewerSummaries:sums,bugs:bugs.map(b=>({...b,media:stripMedia(b.media)})),globalNotes:gNotes,globalMedia:stripMedia(gMedia),completedAt:new Date().toISOString(),passed:bugs.length===0||bugs.every(b=>b.status==="fixed")};
+    const sums=activeReviewers.map(r=>{
+      const role=roleOf(r);
+      const cl=checklistForRole(role);
+      return {reviewer:r,role,flags:rFlags(r).map(f=>({...f,media:stripMedia(f.media)})),platforms:pc[r]||{},done:!!rd[r]?.done,notes:rd[r]?.notes||"",media:stripMedia(rd[r]?.media||[]),sectionNotes:(()=>{const out:any={};cl.forEach(sec=>{const sd=getSec(r,sec.id);out[sec.id]={note:sd.note||"",media:stripMedia(sd.media||[])};});return out;})(),checks:(()=>{const out:any={};cl.forEach(sec=>{const arr=gc(r)?.[sec.id]||[];out[sec.id]=arr.map((c:any)=>({state:c.state,note:c.note,media:stripMedia(c.media)}));});return out;})()};
+    });
+    const entry={id:Date.now().toString(),itemId:active.id,itemName:active.name,url:active.url,figma:active.figma,revision:active.revision,extraLinks:active.extraLinks||[],taskNotes:active.notes||"",reviewers:activeDevQA,designers:activeDesigners,checklistType:active.checklistType||null,trafficSource:active.trafficSource||null,owner:active.owner||null,dateAdded:active.dateAdded||null,lastEditedAt:active.lastEditedAt||null,devQAChecklist:JSON.parse(JSON.stringify(devQAChecklist)),designerChecklist:JSON.parse(JSON.stringify(designerChecklist)),reviewerSummaries:sums,bugs:bugs.map(b=>({...b,media:stripMedia(b.media)})),globalNotes:gNotes,globalMedia:stripMedia(gMedia),completedAt:new Date().toISOString(),passed:bugs.length===0||bugs.every(b=>b.status==="fixed")};
     try{
       await fetch("/api/log",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(entry)});
       await removeFromQueue(active.id);
@@ -616,6 +947,12 @@ export default function QAApp() {
         <div style={{flex:1}}/>
         {view==="qa"&&(
           <div style={{display:"flex",alignItems:"center",gap:12}}>
+            <div style={{display:"flex",alignItems:"center",gap:4}}>
+              <button onClick={undo} disabled={!canUndo} title="Undo (⌘Z)"
+                style={{background:canUndo?C.bgOff:"transparent",border:`1px solid ${canUndo?C.border:"transparent"}`,color:canUndo?C.textMd:C.textSm,width:30,height:30,borderRadius:"50%",cursor:canUndo?"pointer":"not-allowed",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,opacity:canUndo?1:0.4,fontFamily:"inherit"}}>↶</button>
+              <button onClick={redo} disabled={!canRedo} title="Redo (⌘⇧Z)"
+                style={{background:canRedo?C.bgOff:"transparent",border:`1px solid ${canRedo?C.border:"transparent"}`,color:canRedo?C.textMd:C.textSm,width:30,height:30,borderRadius:"50%",cursor:canRedo?"pointer":"not-allowed",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,opacity:canRedo?1:0.4,fontFamily:"inherit"}}>↷</button>
+            </div>
             {openBugs>0&&<span style={{fontSize:11,fontWeight:600,color:"#E8341C",background:"#FEF0ED",border:"1px solid #F5C4BA",padding:"3px 10px",borderRadius:20}}>{openBugs} bug{openBugs>1?"s":""}</span>}
             <div style={{display:"flex",alignItems:"center",gap:7}}>
               <div style={{width:100,height:5,background:C.bgOff,borderRadius:3,overflow:"hidden",border:`1px solid ${C.border}`}}>
@@ -629,18 +966,45 @@ export default function QAApp() {
       </div>
 
       {/* HOME */}
-      {view==="home"&&(
+      {view==="home"&&(()=>{
+        const seenOwnersQ = Array.from(new Set(queue.map((e:any)=>e.owner).filter(Boolean))) as string[];
+        const allOwnersQ = Array.from(new Set([...pools.owners,...seenOwnersQ]));
+        const hasUnassignedQ = queue.some((e:any)=>!e.owner);
+        const countForQ=(o:string)=> o==="all"?queue.length : o==="unassigned"?queue.filter((e:any)=>!e.owner).length : queue.filter((e:any)=>e.owner===o).length;
+        const filteredQueue = queue.filter((item:any)=>{
+          if(queueOwnerFilter==="unassigned")return !item.owner;
+          if(queueOwnerFilter!=="all")return item.owner===queueOwnerFilter;
+          return true;
+        });
+        return(
         <div className="fade" style={{maxWidth:760,margin:"0 auto",padding:"32px 24px"}}>
-          <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:24,gap:16,flexWrap:"wrap"}}>
+          <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:18,gap:16,flexWrap:"wrap"}}>
             <div>
               <h1 style={{fontSize:24,fontWeight:800,marginBottom:5}}>QA Queue</h1>
-              <div style={{fontSize:13,color:C.textMd}}>{queue.length} item{queue.length!==1?"s":""} in queue</div>
+              <div style={{fontSize:13,color:C.textMd}}>{queue.length} item{queue.length!==1?"s":""} in queue{queueOwnerFilter!=="all"?` · ${filteredQueue.length} in ${queueOwnerFilter==="unassigned"?"Unassigned":queueOwnerFilter}`:""}</div>
             </div>
             <button onClick={()=>setShowModal(true)} style={{background:"#111",color:"#fff",border:"none",cursor:"pointer",fontFamily:"inherit",fontSize:13,fontWeight:700,padding:"10px 20px",borderRadius:20,display:"flex",alignItems:"center",gap:7,transition:"background .2s",flexShrink:0}}
               onMouseEnter={e=>(e.currentTarget as HTMLElement).style.background=GREEN} onMouseLeave={e=>(e.currentTarget as HTMLElement).style.background="#111"}>
               <span style={{fontSize:16,lineHeight:1}}>+</span> New QA Task
             </button>
           </div>
+          {/* Owner tabs */}
+          {queue.length>0&&(
+            <div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:14,padding:"4px",background:C.bg,border:`1px solid ${C.border}`,borderRadius:10}}>
+              {[{key:"all",label:"All"},...allOwnersQ.map(o=>({key:o,label:o})),...(hasUnassignedQ?[{key:"unassigned",label:"Unassigned"}]:[])].map(t=>{
+                const sel=queueOwnerFilter===t.key;const cnt=countForQ(t.key);
+                return(
+                  <button key={t.key} onClick={()=>setQueueOwnerFilter(t.key)}
+                    style={{background:sel?"#111":"transparent",color:sel?"#fff":C.textMd,border:"none",cursor:"pointer",fontFamily:"inherit",fontSize:12,fontWeight:sel?700:500,padding:"7px 13px",borderRadius:8,display:"inline-flex",alignItems:"center",gap:6,transition:"all .15s"}}
+                    onMouseEnter={e=>{if(!sel)(e.currentTarget as HTMLElement).style.background=C.bgOff;}}
+                    onMouseLeave={e=>{if(!sel)(e.currentTarget as HTMLElement).style.background="transparent";}}>
+                    {t.label}
+                    <span style={{fontSize:10,fontWeight:700,padding:"1px 7px",borderRadius:20,background:sel?"rgba(255,255,255,.22)":C.bgOff,color:sel?"#fff":C.textSm}}>{cnt}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
           {queue.length===0?(
             <div className="card" style={{padding:"40px 24px",textAlign:"center"}}>
               <div style={{width:52,height:52,borderRadius:"50%",background:C.bgOff,border:`1px solid ${C.border}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,margin:"0 auto 14px"}}>📋</div>
@@ -651,9 +1015,14 @@ export default function QAApp() {
                 <span style={{fontSize:15}}>+</span> New QA Task
               </button>
             </div>
-          ):queue.map((item:any,i:number)=>{
-            const itemRevs:string[] = (item.reviewers && Array.isArray(item.reviewers) && item.reviewers.length>0) ? item.reviewers : REVIEWERS;
+          ):filteredQueue.length===0?(
+            <div className="card" style={{padding:"40px 24px",textAlign:"center"}}>
+              <div style={{fontSize:13,color:C.textMd}}>No tasks in {queueOwnerFilter==="unassigned"?"Unassigned":queueOwnerFilter}.</div>
+            </div>
+          ):filteredQueue.map((item:any,i:number)=>{
             const itemDes:string[] = (item.designers && Array.isArray(item.designers)) ? item.designers : [];
+            const itemRev:string[] = (item.reviewers && Array.isArray(item.reviewers)) ? item.reviewers : (itemDes.length>0?[]:REVIEWERS);
+            const itemRevs = itemRev;
             return(
             <div key={item.id} className="fade card hov" style={{animationDelay:i*0.06+"s",padding:"15px 17px",marginBottom:8,transition:"box-shadow .2s,border-color .2s"}}>
               <div style={{display:"flex",alignItems:"flex-start",gap:14}}>
@@ -661,6 +1030,9 @@ export default function QAApp() {
                   <div style={{fontSize:15,fontWeight:700,marginBottom:8}}>{item.name}</div>
                   <div style={{display:"flex",gap:7,flexWrap:"wrap",marginBottom:7}}>
                     <LinkPill href={item.url} label="Live page"/><LinkPill href={item.figma} label="Figma"/><LinkPill href={item.revision} label="Final revision"/>
+                    {(item.extraLinks||[]).filter((l:any)=>l.url).map((l:any,li:number)=>(
+                      <a key={li} href={l.url} target="_blank" rel="noreferrer" style={{fontSize:12,fontWeight:500,color:"#555550",background:"#F0F0EC",border:"1px solid #D0D0C8",padding:"4px 12px",borderRadius:20,display:"inline-flex",alignItems:"center",gap:4,textDecoration:"none"}}>↗ {l.label||"Link"}</a>
+                    ))}
                   </div>
                   {(item.checklistType||item.trafficSource||item.owner)&&(
                     <div style={{display:"flex",gap:5,flexWrap:"wrap",marginBottom:7}}>
@@ -702,7 +1074,8 @@ export default function QAApp() {
             </div>
           );})}
         </div>
-      )}
+        );
+      })()}
 
       {/* CHECKLIST */}
       {view==="qa"&&active&&(
@@ -717,9 +1090,29 @@ export default function QAApp() {
                 ✎ Edit
               </button>
             </div>
+            {active.url&&(
+              <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10,padding:"7px 11px",background:"#EBF4FF",border:"1px solid #C0DAFF",borderRadius:8}}>
+                <span style={{fontSize:10,fontWeight:700,letterSpacing:"0.06em",textTransform:"uppercase",color:"#0066CC",flexShrink:0}}>Live page</span>
+                <a href={active.url} target="_blank" rel="noreferrer" style={{flex:1,fontSize:12,color:"#0066CC",fontWeight:500,textDecoration:"none",wordBreak:"break-all",lineHeight:1.4}}
+                  onMouseEnter={e=>(e.target as HTMLAnchorElement).style.textDecoration="underline"} onMouseLeave={e=>(e.target as HTMLAnchorElement).style.textDecoration="none"}>
+                  {active.url}
+                </a>
+                <button onClick={()=>{navigator.clipboard?.writeText(active.url).then(()=>showToast("URL copied",true)).catch(()=>{});}}
+                  title="Copy URL" style={{background:"#fff",border:"1px solid #C0DAFF",color:"#0066CC",fontSize:10,fontWeight:600,padding:"3px 8px",borderRadius:6,cursor:"pointer",fontFamily:"inherit",flexShrink:0}}>Copy</button>
+              </div>
+            )}
             <div style={{display:"flex",gap:7,flexWrap:"wrap",marginBottom:10}}>
-              <LinkPill href={active.url} label="Live page"/><LinkPill href={active.figma} label="Figma"/><LinkPill href={active.revision} label="Final revision"/>
+              <LinkPill href={active.figma} label="Figma"/><LinkPill href={active.revision} label="Final revision"/>
+              {(active.extraLinks||[]).filter((l:any)=>l.url).map((l:any,i:number)=>(
+                <a key={i} href={l.url} target="_blank" rel="noreferrer" style={{fontSize:12,fontWeight:500,color:"#555550",background:"#F0F0EC",border:"1px solid #D0D0C8",padding:"4px 12px",borderRadius:20,display:"inline-flex",alignItems:"center",gap:4,textDecoration:"none"}}>↗ {l.label||"Link"}</a>
+              ))}
             </div>
+            {active.notes&&(
+              <div style={{background:"#FFF8E1",border:"1px solid #F0E0A0",borderRadius:8,padding:"8px 11px",marginBottom:10}}>
+                <div style={{fontSize:10,fontWeight:700,color:"#9A7000",letterSpacing:"0.06em",textTransform:"uppercase",marginBottom:3}}>Notes</div>
+                <div style={{fontSize:12,color:"#5B4400",whiteSpace:"pre-wrap",lineHeight:1.45}}>{active.notes}</div>
+              </div>
+            )}
             {(active.checklistType||active.trafficSource||active.owner)&&(
               <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:10}}>
                 {active.checklistType&&<span style={{fontSize:11,fontWeight:600,color:PINK,background:PINK_BG,border:`1px solid ${PINK_BD}`,padding:"3px 10px",borderRadius:20}}>📋 {active.checklistType}</span>}
@@ -767,6 +1160,21 @@ export default function QAApp() {
           <div style={{background:C.bg,border:`1px solid ${C.border}`,borderTop:"none",borderRadius:"0 0 12px 12px",padding:"14px 16px",boxShadow:"0 2px 8px rgba(0,0,0,.04)"}}>
             {qaTab==="checklist"&&(
               <div>
+                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,flexWrap:"wrap",marginBottom:10}}>
+                  <div style={{fontSize:11,color:C.textSm,fontWeight:500}}>
+                    {checklistEditMode?"Customizing checklist — changes save automatically":""}
+                  </div>
+                  <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                    {checklistEditMode&&(
+                      <button onClick={resetChecklistToDefault} style={{fontSize:11,fontWeight:500,padding:"5px 11px",borderRadius:20,border:`1px solid ${C.border}`,background:"none",color:C.textMd,cursor:"pointer",fontFamily:"inherit"}}>Reset to default</button>
+                    )}
+                    <button onClick={()=>setChecklistEditMode(m=>{const next=!m;if(next&&activeR)setEditingChecklistRole(roleOf(activeR));return next;})}
+                      style={{fontSize:11,fontWeight:600,padding:"5px 12px",borderRadius:20,border:`1px solid ${checklistEditMode?GREEN_DK:C.border}`,background:checklistEditMode?GREEN_BG:"none",color:checklistEditMode?GREEN_DK:C.textMd,cursor:"pointer",fontFamily:"inherit",display:"inline-flex",alignItems:"center",gap:5}}>
+                      {checklistEditMode?"✓ Done customizing":"✎ Customize checklist"}
+                    </button>
+                  </div>
+                </div>
+                {!checklistEditMode&&(
                 <div style={{display:"flex",gap:10,marginBottom:12,flexWrap:"wrap",alignItems:"center",padding:"9px 12px",background:C.bgOff,borderRadius:8,border:`1px solid ${C.border}`}}>
                   <span style={{fontSize:11,fontWeight:600,color:C.textSm}}>Click to cycle →</span>
                   {[["","Unchecked"],["✓","Done"],["N/A","Skip"],["⚑","Flag"]].map(([l,lbl])=>{
@@ -776,7 +1184,9 @@ export default function QAApp() {
                     </span>);
                   })}
                 </div>
+                )}
 
+                {!checklistEditMode&&(
                 <div style={{display:"flex",borderBottom:`1px solid ${C.border}`,marginBottom:12}}>
                   {activeReviewers.map(r=>{const p=rProg(r),d=rd[r]?.done;return(
                     <button key={r} style={rtb(activeR===r)} onClick={()=>setActiveR(r)}>
@@ -786,14 +1196,16 @@ export default function QAApp() {
                     </button>
                   );})}
                 </div>
+                )}
 
+                {!checklistEditMode&&(
                 <div style={{marginBottom:7,border:`1px solid ${C.border}`,borderRadius:10,overflow:"hidden"}}>
                   <div style={{background:C.bgOff,padding:"9px 13px",borderBottom:`1px solid ${C.border}`,display:"flex",alignItems:"center"}}>
                     <span style={{fontSize:13,fontWeight:700,flex:1}}>BrowserStack Testing</span>
                     <a href="https://www.browserstack.com" target="_blank" rel="noreferrer" style={{fontSize:11,fontWeight:600,color:"#0066CC",background:"#EBF4FF",border:"1px solid #C0DAFF",padding:"3px 10px",borderRadius:20}}>↗ Open</a>
                   </div>
                   <div style={{padding:"4px 13px 8px"}}>
-                    {PLATFORMS.map(pl=>{const s=pc[activeR][pl],sty=ST[s]||ST.unchecked;return(
+                    {PLATFORMS.map(pl=>{const s=pc[activeR]?.[pl]||"unchecked",sty=ST[s]||ST.unchecked;return(
                       <div key={pl} style={{display:"flex",alignItems:"center",gap:10,padding:"5px 0",borderBottom:`1px solid ${C.border}`}}>
                         <button onClick={()=>cyclePlat(activeR,pl)} style={{width:42,height:20,borderRadius:5,border:`1.5px solid ${sty.bd}`,background:sty.bg,color:sty.color,cursor:"pointer",fontFamily:"inherit",fontSize:9,fontWeight:700,flexShrink:0,transition:"all .12s"}}>{sty.label}</button>
                         <span style={{fontSize:12,fontWeight:500,color:s==="na"||s==="checked"?C.textSm:C.text,textDecoration:s==="na"||s==="checked"?"line-through":"none",opacity:s==="na"?.5:1}}>{pl}</span>
@@ -801,10 +1213,68 @@ export default function QAApp() {
                     );})}
                   </div>
                 </div>
+                )}
 
-                {CHECKLIST.map(sec=>{
-                  const sc=gc(activeR)[sec.id];const act=sc.filter((c:any)=>c.state!=="na");const done=act.filter((c:any)=>c.state==="checked"||c.state==="flagged");
-                  const flagged=sc.filter((c:any)=>c.state==="flagged");const pct=act.length?Math.round(done.length/act.length*100):0;const open=openSecs[sec.id];
+                {checklistEditMode?(
+                  <div>
+                    <div style={{display:"flex",gap:6,marginBottom:10,padding:"4px",background:C.bg,border:`1px solid ${C.border}`,borderRadius:10}}>
+                      {[{key:"devqa",label:"💻 Dev QA checklist",accent:GREEN_DK,bg:GREEN_BG,bd:GREEN_BD},{key:"designer",label:"🎨 Designer checklist",accent:"#7B3FE4",bg:"#F0EEFF",bd:"#C8B8FF"}].map(t=>{
+                        const sel=editingChecklistRole===t.key;
+                        return(
+                          <button key={t.key} onClick={()=>setEditingChecklistRole(t.key as any)}
+                            style={{flex:1,background:sel?t.bg:"transparent",color:sel?t.accent:C.textMd,border:`1px solid ${sel?t.bd:"transparent"}`,fontFamily:"inherit",fontSize:12,fontWeight:sel?700:500,padding:"7px 10px",borderRadius:8,cursor:"pointer",transition:"all .15s"}}>
+                            {t.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {currentEditChecklist().map((sec,si)=>(
+                      <div key={sec.id} style={{marginBottom:7,border:`1px solid ${C.border}`,borderRadius:10,overflow:"hidden",background:C.bg}}>
+                        <div style={{display:"flex",alignItems:"center",gap:8,padding:"9px 11px",background:C.bgOff,borderBottom:`1px solid ${C.border}`}}>
+                          <input type="color" value={sec.color} onChange={e=>recolorSection(sec.id,e.target.value)} title="Section color"
+                            style={{width:24,height:24,border:`1px solid ${C.border}`,borderRadius:5,padding:0,cursor:"pointer",background:"none",flexShrink:0}}/>
+                          <input value={sec.label} onChange={e=>renameSection(sec.id,e.target.value)} placeholder="Section name"
+                            style={{flex:1,minWidth:0,background:C.bg,border:`1px solid ${C.border}`,borderRadius:6,padding:"5px 9px",fontSize:13,fontWeight:600,color:C.text,outline:"none",fontFamily:"inherit"}}/>
+                          <div style={{display:"flex",gap:3,flexShrink:0}}>
+                            <button onClick={()=>moveSection(sec.id,-1)} disabled={si===0} title="Move up"
+                              style={{width:26,height:26,borderRadius:6,border:`1px solid ${C.border}`,background:si===0?"transparent":C.bg,color:si===0?C.textSm:C.textMd,cursor:si===0?"not-allowed":"pointer",fontFamily:"inherit",fontSize:13,opacity:si===0?0.4:1}}>↑</button>
+                            <button onClick={()=>moveSection(sec.id,1)} disabled={si===currentEditChecklist().length-1} title="Move down"
+                              style={{width:26,height:26,borderRadius:6,border:`1px solid ${C.border}`,background:si===currentEditChecklist().length-1?"transparent":C.bg,color:si===currentEditChecklist().length-1?C.textSm:C.textMd,cursor:si===currentEditChecklist().length-1?"not-allowed":"pointer",fontFamily:"inherit",fontSize:13,opacity:si===currentEditChecklist().length-1?0.4:1}}>↓</button>
+                            <button onClick={()=>deleteSection(sec.id)} title="Delete section"
+                              style={{width:26,height:26,borderRadius:6,border:`1px solid ${C.border}`,background:C.bg,color:"#E8341C",cursor:"pointer",fontFamily:"inherit",fontSize:14,fontWeight:600}}>×</button>
+                          </div>
+                        </div>
+                        <div style={{padding:"7px 9px 9px 9px"}}>
+                          {sec.items.map((it,ii)=>(
+                            <div key={ii} style={{display:"flex",alignItems:"center",gap:6,marginBottom:5}}>
+                              <span style={{fontSize:10,color:C.textSm,minWidth:20,textAlign:"center"}}>{ii+1}</span>
+                              <input value={it} onChange={e=>renameItem(sec.id,ii,e.target.value)} placeholder="Item text"
+                                style={{flex:1,minWidth:0,background:C.bg,border:`1px solid ${C.border}`,borderRadius:6,padding:"5px 9px",fontSize:12,color:C.text,outline:"none",fontFamily:"inherit"}}/>
+                              <button onClick={()=>moveItem(sec.id,ii,-1)} disabled={ii===0} title="Move up"
+                                style={{width:24,height:24,borderRadius:5,border:`1px solid ${C.border}`,background:ii===0?"transparent":C.bg,color:ii===0?C.textSm:C.textMd,cursor:ii===0?"not-allowed":"pointer",fontFamily:"inherit",fontSize:12,opacity:ii===0?0.4:1}}>↑</button>
+                              <button onClick={()=>moveItem(sec.id,ii,1)} disabled={ii===sec.items.length-1} title="Move down"
+                                style={{width:24,height:24,borderRadius:5,border:`1px solid ${C.border}`,background:ii===sec.items.length-1?"transparent":C.bg,color:ii===sec.items.length-1?C.textSm:C.textMd,cursor:ii===sec.items.length-1?"not-allowed":"pointer",fontFamily:"inherit",fontSize:12,opacity:ii===sec.items.length-1?0.4:1}}>↓</button>
+                              <button onClick={()=>deleteItem(sec.id,ii)} title="Delete item"
+                                style={{width:24,height:24,borderRadius:5,border:`1px solid ${C.border}`,background:C.bg,color:"#E8341C",cursor:"pointer",fontFamily:"inherit",fontSize:13,fontWeight:600}}>×</button>
+                            </div>
+                          ))}
+                          <button onClick={()=>addItem(sec.id)}
+                            style={{marginTop:4,background:C.bgOff,border:`1px dashed ${C.borderMd}`,color:C.textMd,padding:"5px 11px",borderRadius:6,cursor:"pointer",fontSize:11,fontWeight:600,fontFamily:"inherit"}}
+                            onMouseEnter={e=>{const el=e.currentTarget as HTMLElement;el.style.borderColor=GREEN;el.style.color=GREEN_DK;el.style.background=GREEN_BG;}}
+                            onMouseLeave={e=>{const el=e.currentTarget as HTMLElement;el.style.borderColor=C.borderMd;el.style.color=C.textMd;el.style.background=C.bgOff;}}>+ Add item</button>
+                        </div>
+                      </div>
+                    ))}
+                    <button onClick={addSection}
+                      style={{width:"100%",marginTop:4,background:C.bgOff,border:`1.5px dashed ${C.borderMd}`,color:C.textMd,padding:"11px",borderRadius:10,cursor:"pointer",fontSize:12,fontWeight:600,fontFamily:"inherit"}}
+                      onMouseEnter={e=>{const el=e.currentTarget as HTMLElement;el.style.borderColor=GREEN;el.style.color=GREEN_DK;el.style.background=GREEN_BG;}}
+                      onMouseLeave={e=>{const el=e.currentTarget as HTMLElement;el.style.borderColor=C.borderMd;el.style.color=C.textMd;el.style.background=C.bgOff;}}>
+                      + Add section
+                    </button>
+                  </div>
+                ):checklistForReviewer(activeR).map(sec=>{
+                  const sc=gc(activeR)?.[sec.id];if(!sc)return null;const act=sc.filter((c:any)=>c.state!=="na");const done=act.filter((c:any)=>c.state==="checked"||c.state==="flagged");
+                  const flagged=sc.filter((c:any)=>c.state==="flagged");const pct=act.length?Math.round(done.length/act.length*100):0;const open=openSecs[sec.id]!==false;
                   return(
                     <div key={sec.id} style={{marginBottom:5,border:`1px solid ${C.border}`,borderRadius:10,overflow:"hidden"}}>
                       <button style={{width:"100%",background:C.bgOff,border:"none",cursor:"pointer",display:"flex",alignItems:"center",gap:10,padding:"10px 13px",textAlign:"left",fontFamily:"inherit",transition:"background .15s"}}
@@ -848,21 +1318,25 @@ export default function QAApp() {
                   );
                 })}
 
+                {!checklistEditMode&&rd[activeR]&&(
                 <div style={{marginTop:8,border:`1px solid ${C.border}`,borderRadius:10,padding:"12px 13px"}}>
                   <div style={{fontSize:11,fontWeight:700,color:C.textSm,letterSpacing:"0.08em",textTransform:"uppercase",marginBottom:7}}>{activeR} — Notes & Screenshots</div>
-                  <textarea value={rd[activeR].notes} onChange={e=>setRNotes(activeR,e.target.value)} placeholder={`Notes for ${activeR}...`} rows={2} style={{width:"100%",background:C.bgOff,border:`1px solid ${C.border}`,borderRadius:8,padding:"7px 10px",fontSize:13,color:C.text,resize:"vertical",fontFamily:"inherit",outline:"none",marginBottom:7}}/>
-                  <MediaUploader media={rd[activeR].media} onChange={m=>setRMedia(activeR,m)} onOpen={setLightbox}/>
+                  <textarea value={rd[activeR].notes||""} onChange={e=>setRNotes(activeR,e.target.value)} placeholder={`Notes for ${activeR}...`} rows={2} style={{width:"100%",background:C.bgOff,border:`1px solid ${C.border}`,borderRadius:8,padding:"7px 10px",fontSize:13,color:C.text,resize:"vertical",fontFamily:"inherit",outline:"none",marginBottom:7}}/>
+                  <MediaUploader media={rd[activeR].media||[]} onChange={m=>setRMedia(activeR,m)} onOpen={setLightbox}/>
                 </div>
+                )}
 
+                {!checklistEditMode&&rd[activeR]&&(
                 <div style={{marginTop:7,border:`1px solid ${C.border}`,borderRadius:10,padding:"11px 13px",display:"flex",alignItems:"center",gap:12}}>
                   <div style={{flex:1}}>
                     <div style={{fontSize:13,fontWeight:600}}>Mark your QA pass as complete</div>
-                    <div style={{fontSize:11,color:C.textSm,marginTop:2}}>All three reviewers must mark done before final submit unlocks</div>
+                    <div style={{fontSize:11,color:C.textSm,marginTop:2}}>For progress tracking only — submit doesn't require everyone to mark done</div>
                   </div>
                   <button onClick={()=>toggleDone(activeR)} style={{background:rd[activeR].done?GREEN:C.bg,color:rd[activeR].done?"#fff":C.text,border:`1.5px solid ${rd[activeR].done?GREEN:C.borderMd}`,cursor:"pointer",fontFamily:"inherit",fontSize:13,fontWeight:700,padding:"8px 18px",borderRadius:20,transition:"all .2s",flexShrink:0}}>
                     {rd[activeR].done?"✓ Done — undo":"Mark my QA done"}
                   </button>
                 </div>
+                )}
               </div>
             )}
             {qaTab==="bugs"&&(
@@ -884,12 +1358,16 @@ export default function QAApp() {
               {activeReviewers.map(r=><span key={r} style={{fontSize:12,fontWeight:600,color:rd[r]?.done?GREEN_DK:C.textMd,background:rd[r]?.done?GREEN_BG:C.bgOff,border:`1px solid ${rd[r]?.done?GREEN_BD:C.border}`,padding:"4px 12px",borderRadius:20}}>{rd[r]?.done?"✓ ":""}{r}{rd[r]?.done?" done":" pending"}</span>)}
               {openBugs>0&&<span style={{fontSize:12,fontWeight:600,color:"#E8341C",background:"#FEF0ED",border:"1px solid #F5C4BA",padding:"4px 12px",borderRadius:20}}>{openBugs} bug{openBugs>1?"s":""} open</span>}
             </div>
-            <div style={{display:"flex",alignItems:"center",gap:12}}>
-              <button onClick={submit} disabled={!canSubmit||submitting} style={{background:canSubmit?"#111":C.bgOff,color:canSubmit?"#fff":C.textSm,border:"none",cursor:canSubmit?"pointer":"not-allowed",fontFamily:"inherit",fontSize:14,fontWeight:700,padding:"11px 28px",borderRadius:20,transition:"background .2s"}}
-                onMouseEnter={e=>canSubmit&&((e.currentTarget as HTMLElement).style.background=GREEN)} onMouseLeave={e=>canSubmit&&((e.currentTarget as HTMLElement).style.background="#111")}>
-                {submitting?"Saving...":canSubmit?"Submit Final QA ✓":"Waiting for all reviewers"}
+            <div style={{display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}}>
+              <button onClick={submit} disabled={submitting} style={{background:"#111",color:"#fff",border:"none",cursor:submitting?"not-allowed":"pointer",fontFamily:"inherit",fontSize:14,fontWeight:700,padding:"11px 28px",borderRadius:20,transition:"background .2s",opacity:submitting?0.7:1}}
+                onMouseEnter={e=>!submitting&&((e.currentTarget as HTMLElement).style.background=GREEN)} onMouseLeave={e=>!submitting&&((e.currentTarget as HTMLElement).style.background="#111")}>
+                {submitting?"Saving...":"Submit Final QA ✓"}
               </button>
-              {canSubmit&&<span style={{fontSize:12,fontWeight:600,color:GREEN_DK}}>Ready to submit!</span>}
+              {allDone?(
+                <span style={{fontSize:12,fontWeight:600,color:GREEN_DK}}>All reviewers marked done!</span>
+              ):(
+                <span style={{fontSize:11,color:C.textSm}}>You can submit anytime — "Mark my QA done" is for progress tracking only</span>
+              )}
             </div>
           </div>
         </div>
@@ -907,7 +1385,7 @@ export default function QAApp() {
           if(logOwnerFilter==="unassigned"){if(e.owner)return false;}
           else if(logOwnerFilter!=="all"){if(e.owner!==logOwnerFilter)return false;}
           if(!q)return true;
-          const hay=[e.itemName,e.url,e.figma,e.revision,e.owner,e.trafficSource,e.checklistType,...(e.reviewers||[]),...(e.designers||[])].filter(Boolean).join(" ").toLowerCase();
+          const hay=[e.itemName,e.url,e.figma,e.revision,e.owner,e.trafficSource,e.checklistType,e.taskNotes,...(e.reviewers||[]),...(e.designers||[]),...(e.extraLinks||[]).flatMap((l:any)=>[l.label,l.url])].filter(Boolean).join(" ").toLowerCase();
           return hay.includes(q);
         });
         const countFor=(o:string)=> o==="all"?log.length : o==="unassigned"?log.filter((e:any)=>!e.owner).length : log.filter((e:any)=>e.owner===o).length;
@@ -961,8 +1439,17 @@ export default function QAApp() {
                 <div style={{borderTop:`1px solid ${C.border}`,padding:"13px 16px"}}>
                   <div style={{display:"flex",gap:7,marginBottom:10,flexWrap:"wrap"}}>
                     <LinkPill href={entry.url} label="Live page"/><LinkPill href={entry.figma} label="Figma"/><LinkPill href={entry.revision} label="Final revision"/>
+                    {(entry.extraLinks||[]).filter((l:any)=>l.url).map((l:any,li:number)=>(
+                      <a key={li} href={l.url} target="_blank" rel="noreferrer" style={{fontSize:12,fontWeight:500,color:"#555550",background:"#F0F0EC",border:"1px solid #D0D0C8",padding:"4px 12px",borderRadius:20,display:"inline-flex",alignItems:"center",gap:4,textDecoration:"none"}}>↗ {l.label||"Link"}</a>
+                    ))}
                     <span style={{fontSize:12,color:C.textSm,alignSelf:"center"}}>{new Date(entry.completedAt).toLocaleString()}</span>
                   </div>
+                  {entry.taskNotes&&(
+                    <div style={{background:"#FFF8E1",border:"1px solid #F0E0A0",borderRadius:8,padding:"8px 11px",marginBottom:10}}>
+                      <div style={{fontSize:10,fontWeight:700,color:"#9A7000",letterSpacing:"0.06em",textTransform:"uppercase",marginBottom:3}}>Notes</div>
+                      <div style={{fontSize:12,color:"#5B4400",whiteSpace:"pre-wrap",lineHeight:1.45}}>{entry.taskNotes}</div>
+                    </div>
+                  )}
                   {(entry.checklistType||entry.trafficSource||entry.owner)&&(
                     <div style={{display:"flex",gap:5,flexWrap:"wrap",marginBottom:8}}>
                       {entry.checklistType&&<span style={{fontSize:11,fontWeight:600,color:PINK,background:PINK_BG,border:`1px solid ${PINK_BD}`,padding:"2px 9px",borderRadius:20}}>📋 {entry.checklistType}</span>}
@@ -995,13 +1482,20 @@ export default function QAApp() {
                   {/* Full checklist per reviewer */}
                   {(entry.reviewerSummaries||[]).map((rs:any)=>{
                     if(!rs.checks)return null;
+                    const rsRole=rs.role||((entry.designers||[]).includes(rs.reviewer)?"designer":"devqa");
+                    const renderCL:ChecklistSection[]=
+                      rsRole==="designer"
+                        ? (entry.designerChecklist as ChecklistSection[])||designerChecklist||DEFAULT_DESIGNER_CHECKLIST
+                        : (entry.devQAChecklist as ChecklistSection[])||(entry.checklist as ChecklistSection[])||devQAChecklist||DEFAULT_DEVQA_CHECKLIST;
+                    const rsAccent=rsRole==="designer"?"#7B3FE4":GREEN_DK;
                     return(
                       <div key={rs.reviewer} style={{marginBottom:12,border:`1px solid ${C.border}`,borderRadius:10,overflow:"hidden"}}>
                         <div style={{background:C.bgOff,padding:"8px 13px",borderBottom:`1px solid ${C.border}`,display:"flex",alignItems:"center",gap:8}}>
-                          <span style={{fontSize:12,fontWeight:700,color:GREEN_DK}}>{rs.reviewer}</span>
+                          <span style={{fontSize:12,fontWeight:700,color:rsAccent}}>{rs.reviewer}</span>
+                          <span style={{fontSize:10,fontWeight:600,color:rsAccent,opacity:0.7}}>{rsRole==="designer"?"Designer":"Dev QA"}</span>
                           {rs.done&&<span style={{fontSize:10,fontWeight:700,color:"#fff",background:GREEN,padding:"1px 7px",borderRadius:20}}>Done</span>}
                         </div>
-                        {CHECKLIST.map(sec=>{
+                        {renderCL.map((sec:ChecklistSection)=>{
                           const sc=rs.checks[sec.id];if(!sc)return null;
                           const act=sc.filter((c:any)=>c.state!=="na");const done=act.filter((c:any)=>c.state==="checked"||c.state==="flagged");
                           const sn=rs.sectionNotes?.[sec.id];
